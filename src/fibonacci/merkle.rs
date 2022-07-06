@@ -113,10 +113,10 @@ impl<F: FieldExt> MerkleTreeChip<F> {
                 // Enabled Selectors: Hash
                 let mut new: Value<F>;
                 if layer_idx == 0 {
-                    new = leaf;
+                    new = leaf
                 } else {
-                    new = prev_digest.unwrap().value().map(|x| x.to_owned());
-                }
+                    new = prev_digest.unwrap().value().map(|x| x.to_owned())
+                };
                 let mut input_l = new;
                 let mut input_r = path;
                 bit.map(|bit| {
@@ -209,10 +209,10 @@ mod tests {
 
     #[test]
     fn test_example1() {
-        let leaf = Value::known(Fp::from(99)); // F[0]
+        let leaf = Value::known(Fp::from(99));
         let path_elements = vec![Value::known(Fp::from(1)), Value::known(Fp::from(1))];
         let path_indices = vec![Value::known(Fp::from(0)), Value::known(Fp::from(0))];
-        let digest = Fp::from(101); // F[9]
+        let digest = Fp::from(101);
 
         let circuit = MerkleTreeCircuit {
             leaf: leaf,
@@ -223,8 +223,5 @@ mod tests {
         let public_input = vec![digest];
         let prover = MockProver::run(4, &circuit, vec![public_input.clone()]).unwrap();
         prover.assert_satisfied();
-
-        // uncomment the following line and the assert will fail
-        // _prover.assert_satisfied();
     }
 }
