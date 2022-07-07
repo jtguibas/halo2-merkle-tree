@@ -1,3 +1,4 @@
+// MockMerkleTree: https://github.com/DrPeterVanNostrand/halo2-merkle/blob/main/src/main.rs
 use halo2_proofs::{arithmetic::FieldExt, circuit::*, plonk::*, poly::Rotation};
 use std::marker::PhantomData;
 
@@ -111,7 +112,7 @@ impl<F: FieldExt> MerkleTreeChip<F> {
 
                 // Row 1: | InputLeft | InputRight | Digest |
                 // Enabled Selectors: Hash
-                let mut new: Value<F>;
+                let new: Value<F>;
                 if layer_idx == 0 {
                     new = leaf
                 } else {
@@ -208,7 +209,7 @@ mod tests {
     use halo2_proofs::{circuit::Value, dev::MockProver, pasta::Fp};
 
     #[test]
-    fn test_example1() {
+    fn test() {
         let leaf = Value::known(Fp::from(99));
         let path_elements = vec![Value::known(Fp::from(1)), Value::known(Fp::from(1))];
         let path_indices = vec![Value::known(Fp::from(0)), Value::known(Fp::from(0))];

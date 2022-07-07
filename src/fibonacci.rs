@@ -1,2 +1,3 @@
-mod example1;
+mod hash1;
+mod hash2;
 mod merkle;
