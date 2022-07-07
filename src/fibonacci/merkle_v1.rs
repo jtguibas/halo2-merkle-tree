@@ -1,9 +1,9 @@
-// MockMerkleTree: https://github.com/DrPeterVanNostrand/halo2-merkle/blob/main/src/main.rs
+// MockMerkleTreeV1: https://github.com/DrPeterVanNostrand/halo2-merkle/blob/main/src/main.rs
 use halo2_proofs::{arithmetic::FieldExt, circuit::*, plonk::*, poly::Rotation};
 use std::marker::PhantomData;
 
 #[derive(Debug, Clone)]
-struct MerkleTreeConfig {
+struct MerkleTreeV1Config {
     pub advice: [Column<Advice>; 3],
     pub bool_selector: Selector,
     pub swap_selector: Selector,
@@ -12,13 +12,13 @@ struct MerkleTreeConfig {
 }
 
 #[derive(Debug, Clone)]
-struct MerkleTreeChip<F: FieldExt> {
-    config: MerkleTreeConfig,
+struct MerkleTreeV1Chip<F: FieldExt> {
+    config: MerkleTreeV1Config,
     _marker: PhantomData<F>,
 }
 
-impl<F: FieldExt> MerkleTreeChip<F> {
-    pub fn construct(config: MerkleTreeConfig) -> Self {
+impl<F: FieldExt> MerkleTreeV1Chip<F> {
+    pub fn construct(config: MerkleTreeV1Config) -> Self {
         Self {
             config,
             _marker: PhantomData,
@@ -29,7 +29,7 @@ impl<F: FieldExt> MerkleTreeChip<F> {
         meta: &mut ConstraintSystem<F>,
         advice: [Column<Advice>; 3],
         instance: Column<Instance>,
-    ) -> MerkleTreeConfig {
+    ) -> MerkleTreeV1Config {
         let col_a = advice[0];
         let col_b = advice[1];
         let col_c = advice[2];
@@ -72,7 +72,7 @@ impl<F: FieldExt> MerkleTreeChip<F> {
             vec![s * (a + b - c)]
         });
 
-        MerkleTreeConfig {
+        MerkleTreeV1Config {
             advice: [col_a, col_b, col_c],
             bool_selector,
             swap_selector,
@@ -150,14 +150,14 @@ impl<F: FieldExt> MerkleTreeChip<F> {
 }
 
 #[derive(Default)]
-struct MerkleTreeCircuit<F> {
+struct MerkleTreeV1Circuit<F> {
     pub leaf: Value<F>,
     pub path_elements: Vec<Value<F>>,
     pub path_indices: Vec<Value<F>>,
 }
 
-impl<F: FieldExt> Circuit<F> for MerkleTreeCircuit<F> {
-    type Config = MerkleTreeConfig;
+impl<F: FieldExt> Circuit<F> for MerkleTreeV1Circuit<F> {
+    type Config = MerkleTreeV1Config;
     type FloorPlanner = SimpleFloorPlanner;
 
     fn without_witnesses(&self) -> Self {
@@ -169,7 +169,7 @@ impl<F: FieldExt> Circuit<F> for MerkleTreeCircuit<F> {
         let col_b = meta.advice_column();
         let col_c = meta.advice_column();
         let instance = meta.instance_column();
-        MerkleTreeChip::configure(meta, [col_a, col_b, col_c], instance)
+        MerkleTreeV1Chip::configure(meta, [col_a, col_b, col_c], instance)
     }
 
     fn synthesize(
@@ -177,7 +177,7 @@ impl<F: FieldExt> Circuit<F> for MerkleTreeCircuit<F> {
         config: Self::Config,
         mut layouter: impl Layouter<F>,
     ) -> Result<(), Error> {
-        let chip = MerkleTreeChip::construct(config);
+        let chip = MerkleTreeV1Chip::construct(config);
         let mut digest = chip.assign(
             layouter.namespace(|| "first row"),
             self.leaf,
@@ -205,7 +205,7 @@ impl<F: FieldExt> Circuit<F> for MerkleTreeCircuit<F> {
 }
 
 mod tests {
-    use super::MerkleTreeCircuit;
+    use super::MerkleTreeV1Circuit;
     use halo2_proofs::{circuit::Value, dev::MockProver, pasta::Fp};
 
     #[test]
@@ -215,7 +215,7 @@ mod tests {
         let path_indices = vec![Value::known(Fp::from(0)), Value::known(Fp::from(0))];
         let digest = Fp::from(101);
 
-        let circuit = MerkleTreeCircuit {
+        let circuit = MerkleTreeV1Circuit {
             leaf: leaf,
             path_elements: path_elements,
             path_indices: path_indices,
