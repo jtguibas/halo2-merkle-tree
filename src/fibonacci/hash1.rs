@@ -3,14 +3,14 @@ use halo2_proofs::{arithmetic::FieldExt, circuit::*, plonk::*, poly::Rotation};
 use std::marker::PhantomData;
 
 #[derive(Debug, Clone)]
-struct Hash1Config {
+pub struct Hash1Config {
     pub advice: [Column<Advice>; 2],
     pub instance: Column<Instance>,
     pub hash_selector: Selector,
 }
 
 #[derive(Debug, Clone)]
-struct Hash1Chip<F: FieldExt> {
+pub struct Hash1Chip<F: FieldExt> {
     config: Hash1Config,
     _marker: PhantomData<F>,
 }
