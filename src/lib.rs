@@ -1,1 +1,2 @@
-pub mod fibonacci;
+pub mod chips;
+pub mod circuits;

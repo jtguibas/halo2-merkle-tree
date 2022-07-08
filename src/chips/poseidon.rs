@@ -9,7 +9,7 @@ use std::marker::PhantomData;
 
 #[derive(Debug, Clone)]
 
-struct PoseidonConfig<const WIDTH: usize, const RATE: usize, const L: usize> {
+pub struct PoseidonConfig<const WIDTH: usize, const RATE: usize, const L: usize> {
     inputs: Vec<Column<Advice>>,
     instance: Column<Instance>,
     pow5_config: Pow5Config<Fp, WIDTH, RATE>,
@@ -17,8 +17,12 @@ struct PoseidonConfig<const WIDTH: usize, const RATE: usize, const L: usize> {
 
 #[derive(Debug, Clone)]
 
-struct PoseidonChip<S: Spec<Fp, WIDTH, RATE>, const WIDTH: usize, const RATE: usize, const L: usize>
-{
+pub struct PoseidonChip<
+    S: Spec<Fp, WIDTH, RATE>,
+    const WIDTH: usize,
+    const RATE: usize,
+    const L: usize,
+> {
     config: PoseidonConfig<WIDTH, RATE, L>,
     _marker: PhantomData<S>,
 }
@@ -33,7 +37,7 @@ impl<S: Spec<Fp, WIDTH, RATE>, const WIDTH: usize, const RATE: usize, const L: u
         }
     }
 
-    fn configure(meta: &mut ConstraintSystem<Fp>) -> PoseidonConfig<WIDTH, RATE, L> {
+    pub fn configure(meta: &mut ConstraintSystem<Fp>) -> PoseidonConfig<WIDTH, RATE, L> {
         let state = (0..WIDTH).map(|_| meta.advice_column()).collect::<Vec<_>>();
         let partial_sbox = meta.advice_column();
         let rc_a = (0..WIDTH).map(|_| meta.fixed_column()).collect::<Vec<_>>();
@@ -94,7 +98,7 @@ impl<S: Spec<Fp, WIDTH, RATE>, const WIDTH: usize, const RATE: usize, const L: u
         layouter.constrain_instance(cell.cell(), self.config.instance, row)
     }
 
-    fn hash(
+    pub fn hash(
         &self,
         mut layouter: impl Layouter<Fp>,
         words: &[AssignedCell<Fp, Fp>; L],
@@ -124,80 +128,5 @@ impl<S: Spec<Fp, WIDTH, RATE>, const WIDTH: usize, const RATE: usize, const L: u
             layouter.namespace(|| "hasher"),
         )?;
         hasher.hash(layouter.namespace(|| "hash"), word_cells)
-    }
-}
-
-struct PoseidonCircuit<
-    S: Spec<Fp, WIDTH, RATE>,
-    const WIDTH: usize,
-    const RATE: usize,
-    const L: usize,
-> {
-    message: [Value<Fp>; L],
-    output: Value<Fp>,
-    _spec: PhantomData<S>,
-}
-
-impl<S: Spec<Fp, WIDTH, RATE>, const WIDTH: usize, const RATE: usize, const L: usize> Circuit<Fp>
-    for PoseidonCircuit<S, WIDTH, RATE, L>
-{
-    type Config = PoseidonConfig<WIDTH, RATE, L>;
-    type FloorPlanner = SimpleFloorPlanner;
-
-    fn without_witnesses(&self) -> Self {
-        Self {
-            message: (0..L)
-                .map(|i| Value::unknown())
-                .collect::<Vec<Value<Fp>>>()
-                .try_into()
-                .unwrap(),
-            output: Value::unknown(),
-            _spec: PhantomData,
-        }
-    }
-
-    fn configure(meta: &mut ConstraintSystem<Fp>) -> PoseidonConfig<WIDTH, RATE, L> {
-        PoseidonChip::<S, WIDTH, RATE, L>::configure(meta)
-    }
-
-    fn synthesize(
-        &self,
-        config: PoseidonConfig<WIDTH, RATE, L>,
-        mut layouter: impl Layouter<Fp>,
-    ) -> Result<(), Error> {
-        let poseidon_chip = PoseidonChip::<S, WIDTH, RATE, L>::construct(config);
-        let message_cells = poseidon_chip
-            .load_private_inputs(layouter.namespace(|| "load private inputs"), self.message)?;
-        let result = poseidon_chip.hash(layouter.namespace(|| "poseidon chip"), &message_cells)?;
-        poseidon_chip.expose_public(layouter.namespace(|| "expose result"), &result, 0)?;
-        Ok(())
-    }
-}
-
-mod tests {
-    use std::marker::PhantomData;
-
-    use super::PoseidonCircuit;
-    use halo2_gadgets::poseidon::{
-        primitives::{self as poseidon, ConstantLength, P128Pow5T3 as OrchardNullifier, Spec},
-        Hash,
-    };
-    use halo2_proofs::{circuit::Value, dev::MockProver, pasta::Fp};
-
-    #[test]
-    fn test() {
-        let input = 99u64;
-        let message = [Fp::from(input), Fp::from(input)];
-        let output =
-            poseidon::Hash::<_, OrchardNullifier, ConstantLength<2>, 3, 2>::init().hash(message);
-
-        let circuit = PoseidonCircuit::<OrchardNullifier, 3, 2, 2> {
-            message: message.map(|x| Value::known(x)),
-            output: Value::known(output),
-            _spec: PhantomData,
-        };
-        let public_input = vec![output];
-        let prover = MockProver::run(10, &circuit, vec![public_input.clone()]).unwrap();
-        prover.assert_satisfied();
     }
 }
