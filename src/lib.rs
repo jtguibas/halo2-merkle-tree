@@ -1,1 +1,1 @@
-mod fibonacci;
+pub mod fibonacci;
