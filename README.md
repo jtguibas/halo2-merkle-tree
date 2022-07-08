@@ -1,6 +1,6 @@
-# Halo2 Examples
+# halo2-merkle-tree
 
-This repo includes a few simple examples to illustrate how to write circuit in Halo2.
+This repo includes a few chips and circuits that slowly towards a fully function merkle tree chip implementation in Halo2 with the Poseidon hash function.
 
 ## Instruction
 
@@ -11,14 +11,7 @@ cargo build
 ```
 
 Run examples
-```
-cargo test -- --nocapture test_example1
-cargo test -- --nocapture test_example2
-cargo test -- --nocapture test_example3
-```
 
-Plot the circuit layout
 ```
-cargo test --all-features -- --nocapture plot_fibo1
-cargo test --all-features -- --nocapture plot_fibo2
+cargo test -- --nocapture test
 ```
