@@ -2,6 +2,18 @@
 use halo2_proofs::{arithmetic::FieldExt, circuit::*, plonk::*, poly::Rotation};
 use std::marker::PhantomData;
 
+// |-----||------------------|------------------|----------|---------|-------|---------|--------|--------|
+// | row ||       a_col      |       b_col      |  c_col   | pub_col | s_pub | s_bool  | s_swap | s_hash |
+// |-----||------------------|------------------|----------|---------|-------|---------|--------|--------|
+// |  0  ||       leaf       |      elem_1      |  cbit_1  | cbit_1  |   1   |    1    |    1   |    0   |
+// |  1  ||    leaf/elem_1   |   leaf/elem_1    | digest_1 |         |   0   |    0    |    0   |    1   |
+// |  2  ||     digest_1*    |      elem_2      |  cbit_2  | cbit_2  |   1   |    1    |    1   |    0   |
+// |  3  || digest_1/elem_2  | digest_1/elem_2  | digest_2 |         |   0   |    0    |    0   |    1   |
+// |  4  ||     digest_2*    |       elem_3     |  cbit_3  | cbit_3  |   1   |    1    |    1   |    0   |
+// |  5  || digest_2/elem_3  | digest_2/elem_3  | digest_3 |  root   |   1   |    0    |    0   |    1   |
+// |-----||------------------|------------------|----------|---------|-------|---------|--------|--------|
+//   "*" = copy
+
 #[derive(Debug, Clone)]
 struct MerkleTreeV1Config {
     pub advice: [Column<Advice>; 3],
