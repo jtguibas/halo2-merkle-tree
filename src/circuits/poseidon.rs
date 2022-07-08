@@ -4,7 +4,7 @@ is already implemented in halo2_gadgets, there is no wrapper chip that makes it 
 */
 
 use super::super::chips::poseidon::{PoseidonChip, PoseidonConfig};
-use halo2_gadgets::poseidon::primitives::*;
+use halo2_gadgets::poseidon::{primitives::*};
 use halo2_proofs::{circuit::*, pasta::Fp, plonk::*};
 use std::marker::PhantomData;
 

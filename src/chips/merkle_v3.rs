@@ -179,3 +179,123 @@ impl MerkleTreeV3Chip {
         Ok(leaf_or_digest)
     }
 }
+
+#[derive(Default)]
+struct MerkleTreeV3Circuit {
+    pub leaf: Value<Fp>,
+    pub elements: Vec<Value<Fp>>,
+    pub indices: Vec<Value<Fp>>,
+}
+
+impl Circuit<Fp> for MerkleTreeV3Circuit {
+    type Config = MerkleTreeV3Config;
+    type FloorPlanner = SimpleFloorPlanner;
+
+    fn without_witnesses(&self) -> Self {
+        Self::default()
+    }
+
+    fn configure(meta: &mut ConstraintSystem<Fp>) -> Self::Config {
+        let col_a = meta.advice_column();
+        let col_b = meta.advice_column();
+        let col_c = meta.advice_column();
+        let instance = meta.instance_column();
+        MerkleTreeV3Chip::configure(meta, [col_a, col_b, col_c], instance)
+    }
+
+    fn synthesize(
+        &self,
+        config: Self::Config,
+        mut layouter: impl Layouter<Fp>,
+    ) -> Result<(), Error> {
+        let chip = MerkleTreeV3Chip::construct(config);
+        let leaf_cell = chip.load_private(layouter.namespace(|| "load leaf"), self.leaf)?;
+        chip.expose_public(layouter.namespace(|| "public leaf"), &leaf_cell, 0)?;
+        let digest = chip.merkle_prove(
+            layouter.namespace(|| "merkle_prove"),
+            &leaf_cell,
+            &self.elements,
+            &self.indices,
+        )?;
+        // chip.expose_public(layouter.namespace(|| "leaf"), &leaf_cell, 0)?;
+        chip.expose_public(layouter.namespace(|| "public root"), &digest, 1)?;
+        Ok(())
+    }
+}
+
+mod tests {
+    use std::arch::aarch64::vreinterpret_f32_p64;
+
+    use crate::chips::poseidon;
+
+    use super::MerkleTreeV3Circuit;
+    use halo2_gadgets::poseidon::{
+        primitives::{self as poseidon1, ConstantLength, P128Pow5T3 as OrchardNullifier, Spec},
+        Hash,
+    };
+    use halo2_proofs::{circuit::Value, dev::MockProver, pasta::Fp};
+
+    fn compute_merkle_root(leaf: &u64, elements: &Vec<u64>, indices: &Vec<u64>) -> Fp {
+        let k = elements.len();
+        let mut digest = Fp::from(leaf.clone());
+        let mut message: [Fp; 2];
+        for i in 0..k {
+            if indices[i] == 0 {
+                message = [digest, Fp::from(elements[i])];
+            } else {
+                message = [Fp::from(elements[i]), digest];
+            }
+
+            digest = poseidon1::Hash::<_, OrchardNullifier, ConstantLength<2>, 3, 2>::init()
+                .hash(message);
+        }
+        return digest;
+    }
+
+    #[test]
+    fn test() {
+        let leaf = 99u64;
+        let elements = vec![1u64, 5u64, 6u64, 9u64, 9u64];
+        let indices = vec![0u64, 0u64, 0u64, 0u64, 0u64];
+        let digest = compute_merkle_root(&leaf, &elements, &indices);
+
+        let leaf_fp = Value::known(Fp::from(leaf));
+        let elements_fp: Vec<Value<Fp>> = elements
+            .iter()
+            .map(|x| Value::known(Fp::from(x.to_owned())))
+            .collect();
+        let indices_fp: Vec<Value<Fp>> = indices
+            .iter()
+            .map(|x| Value::known(Fp::from(x.to_owned())))
+            .collect();
+
+        let circuit = MerkleTreeV3Circuit {
+            leaf: leaf_fp,
+            elements: elements_fp,
+            indices: indices_fp,
+        };
+
+        let correct_public_input = vec![Fp::from(leaf), Fp::from(digest)];
+        let correct_prover = MockProver::run(
+            10,
+            &circuit,
+            vec![correct_public_input.clone(), correct_public_input.clone()],
+        )
+        .unwrap();
+        correct_prover.assert_satisfied();
+
+        let wrong_public_input = vec![Fp::from(leaf), Fp::from(432058235)];
+        let wrong_prover = MockProver::run(
+            10,
+            &circuit,
+            vec![wrong_public_input.clone(), wrong_public_input.clone()],
+        )
+        .unwrap();
+
+        let result = wrong_prover.verify();
+        match result {
+            Ok(res) => panic!("shouldve not proved correctly but did"),
+            Err(error) => true,
+        };
+    }
+}
