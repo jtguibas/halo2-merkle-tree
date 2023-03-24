@@ -36,7 +36,6 @@ impl<F: FieldExt> MerkleTreeV1Chip<F> {
         let swap_selector = meta.selector();
         let hash_selector = meta.selector();
         meta.enable_equality(col_a);
-        meta.enable_equality(col_b);
         meta.enable_equality(col_c);
         meta.enable_equality(instance);
 
