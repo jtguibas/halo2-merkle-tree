@@ -63,24 +63,6 @@ impl<F: FieldExt> Hash1Chip<F> {
         )
     }
 
-    pub fn load_constant(
-        &self,
-        mut layouter: impl Layouter<F>,
-        constant: F,
-    ) -> Result<AssignedCell<F, F>, Error> {
-        layouter.assign_region(
-            || "load constant",
-            |mut region| {
-                region.assign_advice_from_constant(
-                    || "constant value",
-                    self.config.advice[0],
-                    0,
-                    constant,
-                )
-            },
-        )
-    }
-
     pub fn expose_public(
         &self,
         mut layouter: impl Layouter<F>,
